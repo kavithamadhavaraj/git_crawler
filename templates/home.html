@@ -1,0 +1,130 @@
+
+<html>
+<link href="//netdna.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css"/>
+<script src="//netdna.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+<script src="//code.jquery.com/jquery-1.11.1.min.js"></script>
+<script>
+function call_api(){
+    repo_url = document.getElementById('search_box').value 
+    if ((repo_url != undefined) && (repo_url != "")){
+        $("#spinner").removeClass('d-none');
+        if (!!window.EventSource) {
+            var source = new EventSource('/show_results?repo_url='+repo_url);
+            source.onmessage = function(e) {
+                data = JSON.parse(e.data);
+                if (data.processed == false){
+                    $("#spinner").removeClass('d-none');
+                }
+                else{
+                    source.close()
+                    $("#spinner").addClass('d-none');
+                }
+                if (data.error == null){
+                    $({ someValue: parseInt($('#total').text()) }).animate({ someValue: data.counts.open_issues_total }, {
+                        duration: 1000,
+                        easing: 'swing', // can be anything
+                        step: function () { // called on every step
+                            // Update the element's text with rounded-up value:
+                            $('#total').text(Math.round(this.someValue));
+                        }
+                    });
+                        $({ someValue: parseInt($('#24hrs').text()) }).animate({ someValue: data.counts.open_issues_24hr }, {
+                        duration: 1000,
+                        easing: 'swing', // can be anything
+                        step: function () { // called on every step
+                            // Update the element's text with rounded-up value:
+                            $('#24hrs').text(Math.round(this.someValue));
+                        }
+                    });
+                        $({ someValue: parseInt($('#24hrto7days').text()) }).animate({ someValue: data.counts.open_issues_24hr_7days }, {
+                        duration: 1000,
+                        easing: 'swing', // can be anything
+                        step: function () { // called on every step
+                            // Update the element's text with rounded-up value:
+                            $('#24hrto7days').text(Math.round(this.someValue));
+                        }
+                    });
+                        $({ someValue: parseInt($('#7daysago').text()) }).animate({ someValue: data.counts.open_issues_gt_7days }, {
+                        duration: 1000,
+                        easing: 'swing', // can be anything
+                        step: function () { // called on every step
+                            // Update the element's text with rounded-up value:
+                            $('#7daysago').text(Math.round(this.someValue));
+                        }
+                    });
+                }
+                else{
+                    alert(data.error)
+                    source.close()
+                    $("#spinner").addClass('d-none');
+                }
+            }
+        }
+    }
+
+}
+        
+</script>
+<div class="container">
+    <div class="input-group" >
+        <div class="input-group-prepend">
+            <span class="input-group-text" id="search_prefix">https://github.com/</span>
+        </div>
+        <input type="text"  class="col-md-6 form-control" id="search_box" aria-describedby="search_prefix"></input>
+                <button class="col-md-2 btn btn-primary" type="button" id='search' onclick="call_api()">
+                 <span id='spinner' class="d-none spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+
+                 Search
+        </button>
+        </div>
+       
+    </div>
+    
+    
+    <div class="container">
+        <div class="col-md-9">
+            <div class="list-group">
+                <a class="list-group-item total">
+                    <h4 class="list-group-item-heading count" id="total">0</h4>
+                    <p class="list-group-item-text">
+                        Total number of open issues </p>
+                </a>
+                <a class="list-group-item issues_24hrs">
+                    <h4 class="list-group-item-heading count" id="24hrs">0</h4>
+                    <p class="list-group-item-text">
+                        Number of open issues that were opened in the last 24 hours </p>
+                </a>
+                <a class="list-group-item issues_24hrto7days">
+                    <h4 class="list-group-item-heading count" id='24hrto7days'>0</h4>
+                    <p class="list-group-item-text">
+                        Number of open issues that were opened more than 24 hours ago but less than 7 days ago </p>
+                </a>
+                <a class="list-group-item issues_7daysago">
+                    <h4 class="list-group-item-heading count" id='7daysago'>0</h4>
+                    <p class="list-group-item-text">
+                        Number of open issues that were opened more than 7 days ago</p>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+body { margin-top:20px; }
+.container { margin-top:20px; margin-left:20px;}
+
+.fa { font-size: 50px;text-align: right;position: absolute;top: 7px;right: 27px;outline: none; }
+a { transition: all .3s ease;-webkit-transition: all .3s ease;-moz-transition: all .3s ease;-o-transition: all .3s ease; }
+a.total i,.total h4.list-group-item-heading { color:#E48A07; }
+a.total:hover { background-color:#E48A07; }
+a.total:hover * { color:#FFF; }
+a.issues_24hrs i,.issues_24hrs h4.list-group-item-heading { color:#3b5998; }
+a.issues_24hrs:hover { background-color:#3b5998; }
+a.issues_24hrs:hover * { color:#FFF; }
+a.issues_24hrto7days i,.issues_24hrto7days h4.list-group-item-heading { color:#dd4b39; }
+a.issues_24hrto7days:hover { background-color:#dd4b39; }
+a.issues_24hrto7days:hover * { color:#FFF; }
+a.issues_7daysago i,.issues_7daysago h4.list-group-item-heading { color:#00acee; }
+a.issues_7daysago:hover { background-color:#00acee; }
+a.issues_7daysago:hover * { color:#FFF; }
+</style>
+</html>
