@@ -56,7 +56,7 @@ class Crawler(object):
                     else:
                         print ("Process complete")
                         self.processed = True
-                        yield "data: %s\n\n" % (json.dumps(self.results())) 
+                    yield "data: %s\n\n" % (json.dumps(self.results())) 
                 else:
                     self.processed = False
                     self.error = response["message"]
