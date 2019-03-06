@@ -1,1 +1,1 @@
-web: gunicorn github_crawler:app --workers --timeout 500 
+web: gunicorn github_crawler:app --workers 4 --timeout 500 

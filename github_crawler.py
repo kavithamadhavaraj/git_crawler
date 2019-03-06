@@ -4,9 +4,7 @@ import pandas as pd
 import threading
 from flask import Flask, json, request, Response, render_template
 from dotenv import load_dotenv
-load_dotenv()
-import itertools
-
+load_dotenv() #Load the environmental variables if present in the .env file
 
 class Crawler(object):
     def __init__(self):
