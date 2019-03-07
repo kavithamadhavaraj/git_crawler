@@ -4,6 +4,13 @@
 <script src="//netdna.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
 <script src="//code.jquery.com/jquery-1.11.1.min.js"></script>
 <script>
+function reset_values(){
+    //Reset the count values to 0
+    $('#total').text(0);
+    $('#7daysago').text(0);
+    $('#24hrto7days').text(0);
+    $('#24hrs').text(0);
+}
 function call_api(){
     //Extract the repo_url entered by the user
     repo_url = document.getElementById('search_box').value
@@ -12,27 +19,27 @@ function call_api(){
     //When there is some url to process, do the following
     if ((repo_url != undefined) && (repo_url != "")){
         $("#spinner").removeClass('d-none');
-        //If an EventSource is not already declared, create one
-        if (!!window.EventSource) {
-            var source = new EventSource('/show_results?repo_url='+repo_url);
-            source.onmessage = function(e) {
-                data = JSON.parse(e.data);
-                if (data.processed == false){
-                    //Show the spinner, untill the process is complete
-                    $("#spinner").removeClass('d-none');
-                }
-                else{
-                    //Response has process complete flag, close the connection and remove spinner
-                    source.close()
-                    $("#spinner").addClass('d-none');
-                }
+        reset_values();
+        $.ajax({
+            url: '/show_results?repo_url='+repo_url,
+            type: "GET",
+            success: function(data) {
+                console.log(data);
+                console.log(data.counts.open_issues_total);
+                console.log(data.counts.open_issues_24hr);
+                console.log(data.counts.open_issues_24hr_7days);
+                console.log(data.counts.open_issues_gt_7days);
+                $("#spinner").addClass('d-none');
                 if (data.error == null){
                     $({ someValue: parseInt($('#total').text()) }).animate({ someValue: data.counts.open_issues_total }, {
                         duration: 1000,
                         easing: 'swing', 
                         step: function () { // called on every step
                             // Update the element's text with rounded-up value:
-                            $('#total').text(Math.round(this.someValue));
+                            $('#total').text(Math.ceil(this.someValue));
+                        },
+                        complete: function(){
+                            $('#total').text(Math.ceil(this.someValue));
                         }
                     });
                         $({ someValue: parseInt($('#24hrs').text()) }).animate({ someValue: data.counts.open_issues_24hr }, {
@@ -40,7 +47,10 @@ function call_api(){
                         easing: 'swing', 
                         step: function () { // called on every step
                             // Update the element's text with rounded-up value:
-                            $('#24hrs').text(Math.round(this.someValue));
+                            $('#24hrs').text(Math.ceil(this.someValue));
+                        },
+                        complete: function(){
+                            $('#24hrs').text(Math.ceil(this.someValue));
                         }
                     });
                         $({ someValue: parseInt($('#24hrto7days').text()) }).animate({ someValue: data.counts.open_issues_24hr_7days }, {
@@ -48,7 +58,10 @@ function call_api(){
                         easing: 'swing', 
                         step: function () { // called on every step
                             // Update the element's text with rounded-up value:
-                            $('#24hrto7days').text(Math.round(this.someValue));
+                            $('#24hrto7days').text(Math.ceil(this.someValue));
+                        },
+                        complete: function(){
+                            $('#24hrto7days').text(Math.ceil(this.someValue));
                         }
                     });
                         $({ someValue: parseInt($('#7daysago').text()) }).animate({ someValue: data.counts.open_issues_gt_7days }, {
@@ -56,20 +69,27 @@ function call_api(){
                         easing: 'swing', 
                         step: function () { // called on every step
                             // Update the element's text with rounded-up value:
-                            $('#7daysago').text(Math.round(this.someValue));
+                            $('#7daysago').text(Math.ceil(this.someValue));
+                        },
+                        complete: function(){
+                            $('#7daysago').text(Math.ceil(this.someValue));
                         }
                     });
                 }
                 else{
+                    //Response has error, display error message and remove spinner
                     alert(data.error)
-                    //Response has error, close the connection and remove spinner
-                    source.close()
+                    reset_values();
                     $("#spinner").addClass('d-none');
                 }
-            }
-        }
+            },
+            error: function(request, status, error) {
+                //Error with the server, display error message and remove spinner
+                $("#spinner").addClass('d-none');
+                alert(request.responseText);
+            }                
+        });
     }
-
 }
         
 </script>

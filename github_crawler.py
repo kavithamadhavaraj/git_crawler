@@ -1,112 +1,100 @@
 import os
 import requests
 import pandas as pd
+import datetime
 import threading
-from flask import Flask, json, request, Response, render_template
+from flask import Flask, json, request, Response, render_template, jsonify
 from dotenv import load_dotenv
 load_dotenv() #Load the environmental variables if present in the .env file
 
+
 class Crawler(object):
-    def __init__(self):
-        self.root = None # URL to crawl
+    def __init__(self, url):
+        self.root = url # URL to crawl
         self.count = {}  # The counts of issues are stored as a dictionary, initialised with 0
         self.count["open_issues_total"] = 0
         self.count["open_issues_24hr"] = 0
         self.count["open_issues_24hr_7days"] = 0
         self.count["open_issues_gt_7days"] = 0
-        self.processed=False # Signal to indicate if the crawler finished processing all pages of the given repo
         self.error = None # Error message if present
         
-    def send_results(self):
+    def prepare_results(self):
         #Send the crawler object information as result to the front-end
         result = {}
         result["url"] = self.root
         result["counts"] = self.count
-        result["processed"] = self.processed
         result["error"] = self.error
         return result
 
     def request(self):
         try:
-            #First hit to the GitHub API should have page no as 1
-            page_no = 1
             #Get current time as now
-            now = pd.datetime.now()
+            now = datetime.datetime.now().replace(microsecond=0)
             #Find time which is 24 hrs ago from now
-            open_issues_24hr =  now - pd.Timedelta('24H')
+            open_issues_24hr_time =  (now - datetime.timedelta(hours=24)).isoformat()
             #Find time which is 7 days ago from now
-            open_issues_7days = now - pd.Timedelta('7D')
+            open_issues_7days_time = (now - datetime.timedelta(days=7)).isoformat()
             #Initialise appropriate request header contents
             header_content = {
                 "User-Agent":os.environ.get("account"), #GitHub account name
                 "Accept": "application/vnd.github.v3+json",
                 "Authorization":"token "+os.environ.get("token") #Oauth token after registering the application in GitHub
             }
-            #Until all the pages of the repo is processed or until any error is occurred, do the following
-            while (not self.processed) and (self.error == None):
-                #Search for the issues in the url specified by user with the following attributes
-                #Type: Issue
-                #State : Open
-                #Number of entries to retrieve : 100 entries maximum (limited by GitHub)
-                #Page :  Page to retrieve
-                url = "https://api.github.com/repos/"+self.root+'/issues?&is=issue&state=open&per_page=100&page='+str(page_no)
-                print (url)
-                #Hit the API
-                page = requests.get(url, headers=header_content)
-                #Extract the response
-                response = json.loads(page.text or page.content)
-                #If the response of the page is 200 OK, extract the data
-                if (page.ok):
-                    if len(response) > 0:
-                        #Convert the response data to dataframe
-                        this_df = pd.DataFrame.from_dict(response)
-                        #Format the date attribute for further filtering
-                        this_df["created_at"] = pd.to_datetime(this_df["created_at"])
-                        #Ignore pull requests from the response
-                        if "pull_request" in this_df.columns:
-                            this_df = this_df[this_df["pull_request"].isnull()]
-                        #Extract the count of total open issues
-                        self.count["open_issues_total"] += len(this_df)
-                        #Extract the count of open issues created within 24 hours
-                        self.count["open_issues_24hr"] += len(this_df[this_df["created_at"] >= open_issues_24hr])
-                        #Extract the count of open issues created between 24 hours and 7 days
-                        self.count["open_issues_24hr_7days"] += len(this_df[(this_df["created_at"] < open_issues_24hr) & (this_df["created_at"] >= open_issues_7days)])
-                        #Extract the count of open issues created 7 days ago
-                        self.count["open_issues_gt_7days"] += len(this_df[this_df["created_at"] < open_issues_7days])
-                        #If the retrieved issue count is 100, then there is possibility of next page
-                    if (len(response) == 100):
-                        page_no += 1  
-                    else:
-                        #Mark the process as complete
-                        print ("Process complete")
-                        self.processed = True
-                    #Return the intermediate results
-                    yield "data: %s\n\n" % (json.dumps(self.send_results())) 
-                else:
-                    #Error in retrieving the page, set the error message and stop the processing.
-                    self.processed = False
-                    self.error = response["message"]
-                    #Return the intermediate results
-                    yield "data: %s\n\n" % (json.dumps(self.send_results())) 
-                    
+
+            #Extract the total open issue count for the repo
+            repo_summary_url = "https://api.github.com/search/issues?q=state:open+is:issue+repo:" + self.root
+            repo_summary_response = requests.get(repo_summary_url, headers=header_content)
+            repo_summary = json.loads(repo_summary_response.text or repo_summary_response.content)
+            if repo_summary_response.status_code == 422:
+                # A 422 unauthorised is handled
+                self.error = repo_summary["errors"][0]["message"]
+                return jsonify(self.prepare_results())
+
+            #If the response of the page is 200 OK, extract the data
+            if (repo_summary_response.ok):
+                #Extract the total count
+                self.count["open_issues_total"] = repo_summary["total_count"]
+                
+            #Extract the total open issue count created 24hrs ago
+            open_issues_24hr_url = "https://api.github.com/search/issues?q=state:open+is:issue+repo:" + self.root+ "+created:>=" + open_issues_24hr_time+"-05:30"
+            open_issues_24hr_response = requests.get(open_issues_24hr_url, headers=header_content)
+            open_issues_24hr = json.loads(open_issues_24hr_response.text or open_issues_24hr_response.content)
+
+            #If the response of the page is 200 OK, extract the data
+            if (open_issues_24hr_response.ok):
+                #Extract the total count
+                self.count["open_issues_24hr"] = open_issues_24hr["total_count"]
+
+            #Extract the total open issue count created between 24hrs to 7 days
+            open_issues_24hr_7days_url = "https://api.github.com/search/issues?q=state:open+is:issue+repo:" + self.root+ "+created:" + open_issues_7days_time+"-05:30.."+open_issues_24hr_time+"-05:30"
+            open_issues_24hr_7days_response = requests.get(open_issues_24hr_7days_url, headers=header_content)
+            open_issues_24hr_7days = json.loads(open_issues_24hr_7days_response.text or open_issues_24hr_7days_response.content)
+
+            #If the response of the page is 200 OK, extract the data
+            if (open_issues_24hr_7days_response.ok):
+                #Extract the total count
+                self.count["open_issues_24hr_7days"] = open_issues_24hr_7days["total_count"]
+
+            #Total open issue count created 7 days ago = total open issue - open issues created within 24 hrs - open issues created betwen 24 hrs & 7 days
+            self.count["open_issues_gt_7days"] = self.count["open_issues_total"] - self.count["open_issues_24hr_7days"] - self.count["open_issues_24hr"]
+            return jsonify(self.prepare_results())
+                 
         except requests.exceptions.ConnectionError as e:
             #Exception due to Connection Error, set the appropriate error message
-            self.processed = False
             self.error = str(e)
             print ("Ignoring "+ str(self.root) +", URL might be incorrect") 
         except requests.exceptions.Timeout as e:
             #Exception due to Timeout Error, set the appropriate error message
-            self.processed = False
             self.error = str(e)
             print ("Ignoring "+ str(self.root) +", timeout error")
         except requests.exceptions.RequestException as e:
             #Exception due to Request Exeception, set the appropriate error message
-            self.processed = False
             self.error = str(e)
             print ("Ignoring: "+ str(self.root) +", " + e)
         finally:
             #Return the intermediate results
-            yield "data: %s\n\n" % (json.dumps(self.send_results()))
+            return jsonify(self.prepare_results())
+        
            
 #Create the Flask server object
 app = Flask(__name__)
@@ -117,19 +105,14 @@ def crawl_repo():
     #Get the repo_url query parameter
     repo_url = request.args.get('repo_url', default = None, type = str)
     if repo_url:
-        #Create the crawler object and assign the url as the root
-        cr = Crawler()
-        cr.root = repo_url.strip("/")
-        #Initiate the event-stream if the request type is event-stream
-        if request.headers.get('accept') == 'text/event-stream':
-            print ("Requested")
-            return Response(cr.request(), content_type='text/event-stream')
+        #Create the crawler object with the url and initiate the request
+        cr = Crawler(repo_url.strip("/"))
+        return cr.request()
 
 #Route for the home page
 @app.route('/', methods = ['GET'])
 def hello():
     return render_template("home.html")
-    
 
 if __name__ == '__main__':
     app.run(threaded=True)
