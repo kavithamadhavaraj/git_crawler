@@ -1,28 +1,33 @@
-
 <html>
+<!-- Link to the bootstrap and jquery CDN-->
 <link href="//netdna.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css"/>
 <script src="//netdna.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
 <script src="//code.jquery.com/jquery-1.11.1.min.js"></script>
 <script>
 function call_api(){
+    //Extract the repo_url entered by the user
     repo_url = document.getElementById('search_box').value 
+    //When there is some url to process, do the following
     if ((repo_url != undefined) && (repo_url != "")){
         $("#spinner").removeClass('d-none');
+        //If an EventSource is not already declared, create one
         if (!!window.EventSource) {
             var source = new EventSource('/show_results?repo_url='+repo_url);
             source.onmessage = function(e) {
                 data = JSON.parse(e.data);
                 if (data.processed == false){
+                    //Show the spinner, untill the process is complete
                     $("#spinner").removeClass('d-none');
                 }
                 else{
+                    //Response has process complete flag, close the connection and remove spinner
                     source.close()
                     $("#spinner").addClass('d-none');
                 }
                 if (data.error == null){
                     $({ someValue: parseInt($('#total').text()) }).animate({ someValue: data.counts.open_issues_total }, {
                         duration: 1000,
-                        easing: 'swing', // can be anything
+                        easing: 'swing', 
                         step: function () { // called on every step
                             // Update the element's text with rounded-up value:
                             $('#total').text(Math.round(this.someValue));
@@ -30,7 +35,7 @@ function call_api(){
                     });
                         $({ someValue: parseInt($('#24hrs').text()) }).animate({ someValue: data.counts.open_issues_24hr }, {
                         duration: 1000,
-                        easing: 'swing', // can be anything
+                        easing: 'swing', 
                         step: function () { // called on every step
                             // Update the element's text with rounded-up value:
                             $('#24hrs').text(Math.round(this.someValue));
@@ -38,7 +43,7 @@ function call_api(){
                     });
                         $({ someValue: parseInt($('#24hrto7days').text()) }).animate({ someValue: data.counts.open_issues_24hr_7days }, {
                         duration: 1000,
-                        easing: 'swing', // can be anything
+                        easing: 'swing', 
                         step: function () { // called on every step
                             // Update the element's text with rounded-up value:
                             $('#24hrto7days').text(Math.round(this.someValue));
@@ -46,7 +51,7 @@ function call_api(){
                     });
                         $({ someValue: parseInt($('#7daysago').text()) }).animate({ someValue: data.counts.open_issues_gt_7days }, {
                         duration: 1000,
-                        easing: 'swing', // can be anything
+                        easing: 'swing', 
                         step: function () { // called on every step
                             // Update the element's text with rounded-up value:
                             $('#7daysago').text(Math.round(this.someValue));
@@ -55,6 +60,7 @@ function call_api(){
                 }
                 else{
                     alert(data.error)
+                    //Response has error, close the connection and remove spinner
                     source.close()
                     $("#spinner").addClass('d-none');
                 }
@@ -71,40 +77,33 @@ function call_api(){
             <span class="input-group-text" id="search_prefix">https://github.com/</span>
         </div>
         <input type="text"  class="col-md-6 form-control" id="search_box" aria-describedby="search_prefix"></input>
-                <button class="col-md-2 btn btn-primary" type="button" id='search' onclick="call_api()">
-                 <span id='spinner' class="d-none spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-
-                 Search
+        <button class="col-md-2 btn btn-primary" type="button" id='search' onclick="call_api()">
+            <span id='spinner' class="d-none spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            Search
         </button>
-        </div>
-       
     </div>
+</div>
     
     
-    <div class="container">
-        <div class="col-md-9">
-            <div class="list-group">
-                <a class="list-group-item total">
-                    <h4 class="list-group-item-heading count" id="total">0</h4>
-                    <p class="list-group-item-text">
-                        Total number of open issues </p>
-                </a>
-                <a class="list-group-item issues_24hrs">
-                    <h4 class="list-group-item-heading count" id="24hrs">0</h4>
-                    <p class="list-group-item-text">
-                        Number of open issues that were opened in the last 24 hours </p>
-                </a>
-                <a class="list-group-item issues_24hrto7days">
-                    <h4 class="list-group-item-heading count" id='24hrto7days'>0</h4>
-                    <p class="list-group-item-text">
-                        Number of open issues that were opened more than 24 hours ago but less than 7 days ago </p>
-                </a>
-                <a class="list-group-item issues_7daysago">
-                    <h4 class="list-group-item-heading count" id='7daysago'>0</h4>
-                    <p class="list-group-item-text">
-                        Number of open issues that were opened more than 7 days ago</p>
-                </a>
-            </div>
+<div class="container">
+    <div class="col-md-9">
+        <div class="list-group">
+            <a class="list-group-item total">
+                <h4 class="list-group-item-heading count" id="total">0</h4>
+                <p class="list-group-item-text"> Total number of open issues </p>
+            </a>
+            <a class="list-group-item issues_24hrs">
+                <h4 class="list-group-item-heading count" id="24hrs">0</h4>
+                <p class="list-group-item-text"> Number of open issues that were opened in the last 24 hours </p>
+            </a>
+            <a class="list-group-item issues_24hrto7days">
+                <h4 class="list-group-item-heading count" id='24hrto7days'>0</h4>
+                <p class="list-group-item-text"> Number of open issues that were opened more than 24 hours ago but less than 7 days ago </p>
+            </a>
+            <a class="list-group-item issues_7daysago">
+                <h4 class="list-group-item-heading count" id='7daysago'>0</h4>
+                <p class="list-group-item-text"> Number of open issues that were opened more than 7 days ago</p>
+            </a>
         </div>
     </div>
 </div>
