@@ -57,22 +57,23 @@ class Crawler(object):
                 response = json.loads(page.text or page.content)
                 #If the response of the page is 200 OK, extract the data
                 if (page.ok):
-                    #Convert the response data to dataframe
-                    this_df = pd.DataFrame.from_dict(response)
-                    #Format the date attribute for further filtering
-                    this_df["created_at"] = pd.to_datetime(this_df["created_at"])
-                    #Ignore pull requests from the response
-                    if "pull_request" in this_df.columns:
-                        this_df = this_df[this_df["pull_request"].isnull()]
-                    #Extract the count of total open issues
-                    self.count["open_issues_total"] += len(this_df)
-                    #Extract the count of open issues created within 24 hours
-                    self.count["open_issues_24hr"] += len(this_df[this_df["created_at"] >= open_issues_24hr])
-                    #Extract the count of open issues created between 24 hours and 7 days
-                    self.count["open_issues_24hr_7days"] += len(this_df[(this_df["created_at"] < open_issues_24hr) & (this_df["created_at"] >= open_issues_7days)])
-                    #Extract the count of open issues created 7 days ago
-                    self.count["open_issues_gt_7days"] += len(this_df[this_df["created_at"] < open_issues_7days])
-                    #If the retrieved issue count is 100, then there is possibility of next page
+                    if len(response) > 0:
+                        #Convert the response data to dataframe
+                        this_df = pd.DataFrame.from_dict(response)
+                        #Format the date attribute for further filtering
+                        this_df["created_at"] = pd.to_datetime(this_df["created_at"])
+                        #Ignore pull requests from the response
+                        if "pull_request" in this_df.columns:
+                            this_df = this_df[this_df["pull_request"].isnull()]
+                        #Extract the count of total open issues
+                        self.count["open_issues_total"] += len(this_df)
+                        #Extract the count of open issues created within 24 hours
+                        self.count["open_issues_24hr"] += len(this_df[this_df["created_at"] >= open_issues_24hr])
+                        #Extract the count of open issues created between 24 hours and 7 days
+                        self.count["open_issues_24hr_7days"] += len(this_df[(this_df["created_at"] < open_issues_24hr) & (this_df["created_at"] >= open_issues_7days)])
+                        #Extract the count of open issues created 7 days ago
+                        self.count["open_issues_gt_7days"] += len(this_df[this_df["created_at"] < open_issues_7days])
+                        #If the retrieved issue count is 100, then there is possibility of next page
                     if (len(response) == 100):
                         page_no += 1  
                     else:
@@ -118,7 +119,7 @@ def crawl_repo():
     if repo_url:
         #Create the crawler object and assign the url as the root
         cr = Crawler()
-        cr.root = repo_url
+        cr.root = repo_url.strip("/")
         #Initiate the event-stream if the request type is event-stream
         if request.headers.get('accept') == 'text/event-stream':
             print ("Requested")
