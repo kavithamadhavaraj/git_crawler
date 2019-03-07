@@ -1,9 +1,7 @@
 import os
 import requests
-import pandas as pd
 import datetime
-import threading
-from flask import Flask, json, request, Response, render_template, jsonify
+from flask import Flask, json, request, render_template, jsonify
 from dotenv import load_dotenv
 load_dotenv() #Load the environmental variables if present in the .env file
 

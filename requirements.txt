@@ -1,5 +1,4 @@
 requests>=2.20.0
-Flask==0.12.3
-pandas==0.21.0
+Flask>=0.12.3
 python-dotenv==0.10.1
 gunicorn
