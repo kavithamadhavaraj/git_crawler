@@ -6,7 +6,9 @@
 <script>
 function call_api(){
     //Extract the repo_url entered by the user
-    repo_url = document.getElementById('search_box').value 
+    repo_url = document.getElementById('search_box').value
+    //Remove the GitHub info if present in the search string.
+    repo_url = repo_url.replace("https://github.com/")
     //When there is some url to process, do the following
     if ((repo_url != undefined) && (repo_url != "")){
         $("#spinner").removeClass('d-none');
